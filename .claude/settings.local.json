@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(/Users/changrongruo/adhd/venv/bin/python3:*)",
+      "Bash(brew search:*)"
+    ]
+  }
+}

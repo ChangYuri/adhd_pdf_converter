@@ -59,6 +59,11 @@ def _is_skippable_span(span: dict, page_height: float) -> bool:
     return False
 
 
+def _bold_prefix_len(word_len: int) -> int:
+    """Return how many leading characters of a word should be bolded."""
+    return max(1, (word_len - 1) // 2)
+
+
 def _overlay_bold_first_chars(page: fitz.Page, span: dict):
     """
     For each word in the span:
@@ -81,32 +86,37 @@ def _overlay_bold_first_chars(page: fitz.Page, span: dict):
     if not chars:
         return
 
-    first_of_word = True
-
-    for ch in chars:
-        c = ch["c"]
-
-        if c.strip() == "":       # whitespace → next token is a new word
-            first_of_word = True
+    i = 0
+    while i < len(chars):
+        if chars[i]["c"].strip() == "":
+            i += 1
             continue
 
-        if first_of_word:
+        # Find the current word boundaries in this span.
+        j = i
+        while j < len(chars) and chars[j]["c"].strip() != "":
+            j += 1
+
+        prefix_len = _bold_prefix_len(j - i)
+        for k in range(i, min(i + prefix_len, j)):
+            ch = chars[k]
             ch_origin = ch["origin"]  # (x, y) baseline point
 
-            # Step 1: white-out the original character so it doesn't bleed through
+            # White-out the original character so it doesn't bleed through.
             char_rect = fitz.Rect(ch["bbox"])
             page.draw_rect(char_rect, color=None, fill=(1, 1, 1), overlay=True)
 
-            # Step 2: draw bold replacement
+            # Draw bold replacement.
             page.insert_text(
                 ch_origin,
-                c,
+                ch["c"],
                 fontname=bold_font,
                 fontsize=size,
                 color=(r, g, b),
                 overlay=True,
             )
-            first_of_word = False
+
+        i = j
 
 
 def process_pdf(
